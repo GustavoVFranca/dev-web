@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f1ea;
+            margin: 0;
+            padding: 40px 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            padding: 28px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 22px;
+            margin-top: 0;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 14px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 10px;
+            margin-top: 4px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            margin-top: 18px;
+            width: 100%;
+            padding: 10px;
+            background: #5b8c5a;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        button:hover { background: #4a744a; }
+        #mensagem {
+            margin-top: 10px;
+            font-size: 13px;
+            text-align: center;
+        }
+        ul#lista {
+            list-style: none;
+            padding: 0;
+            margin-top: 24px;
+        }
+        ul#lista li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .pet-info b { font-size: 15px; }
+        .pet-som { color: #777; font-style: italic; }
+        .remover {
+            background: #c0504d;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 9px;
+            font-size: 12px;
+            cursor: pointer;
+            width: auto;
+            margin: 0;
+        }
+        .remover:hover { background: #a63f3c; }
+        .topo { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 10px; }
+        .topo a, .link { color: #5b8c5a; font-size: 14px; }
+        .topo button { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; }
+        h2 { font-size: 17px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 18px; }
+        .check { display: flex; align-items: center; gap: 6px; font-weight: normal; }
+        .check input { width: auto; margin: 0; }
+        .empresa { color: #5b8c5a; font-size: 12px; }
+        #mensagem, #msgUsuario { color: #c0504d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="topo">
+            <span id="quem"></span>
+            <span><a href="index.html">pagina publica</a> <button id="sair">Sair</button></span>
+        </div>
+
+        <h1>Pets da empresa</h1>
+
+        <form id="formPet">
+            <label for="nome">Nome do pet</label>
+            <input type="text" id="nome" placeholder="Ex: Rex" required>
+
+            <label for="tipo">Tipo</label>
+            <select id="tipo">
+                <option value="cachorro">Cachorro</option>
+                <option value="gato">Gato</option>
+                <option value="coelho">Coelho</option>
+            </select>
+
+            <button type="submit">Cadastrar</button>
+        </form>
+
+        <div id="mensagem"></div>
+        <ul id="lista"></ul>
+
+        <!-- So aparece para administradores -->
+        <div id="areaAdmin" style="display:none">
+            <h2>Usuarios</h2>
+
+            <form id="formUsuario">
+                <label for="novoLogin">Login</label>
+                <input type="text" id="novoLogin" required>
+
+                <label for="novaSenha">Senha</label>
+                <input type="password" id="novaSenha" required>
+
+                <label class="check"><input type="checkbox" id="novoAdmin"> Administrador</label>
+
+                <label>Empresas</label>
+                <div id="empresasBox"></div>
+
+                <button type="submit">Cadastrar usuario</button>
+            </form>
+
+            <div id="msgUsuario"></div>
+            <ul id="listaUsuarios"></ul>
+        </div>
+    </div>
+
+    <script>
+        const lista = document.getElementById('lista');
+        const mensagem = document.getElementById('mensagem');
+
+        // Mostra o erro que o servidor mandou; se nao logado, volta para o login
+        async function erroDe(resposta) {
+            if (resposta.status === 401) {
+                window.location = 'login.html';
+            }
+            return await resposta.text();
+        }
+
+        async function iniciar() {
+            const resposta = await fetch('rest/auth/eu');
+            if (!resposta.ok) {
+                window.location = 'login.html';
+                return;
+            }
+            const eu = await resposta.json();
+            document.getElementById('quem').textContent = eu.login + ' - ' + eu.empresa;
+
+            carregarPets();
+            if (eu.admin) {
+                document.getElementById('areaAdmin').style.display = 'block';
+                carregarEmpresas();
+                carregarUsuarios();
+            }
+        }
+
+        async function carregarPets() {
+            const resposta = await fetch('rest/pets');
+            const pets = await resposta.json();
+            lista.innerHTML = '';
+
+            for (const pet of pets) {
+                const li = document.createElement('li');
+                const info = document.createElement('div');
+                info.className = 'pet-info';
+
+                const nome = document.createElement('b');
+                nome.textContent = pet.nome;
+                info.appendChild(nome);
+                info.appendChild(document.createTextNode(' (' + pet.tipo + ')'));
+
+                const som = document.createElement('div');
+                som.className = 'pet-som';
+                som.textContent = 'faz "' + pet.som + '"';
+                info.appendChild(som);
+
+                const botao = document.createElement('button');
+                botao.className = 'remover';
+                botao.textContent = 'remover';
+                botao.setAttribute('data-id', pet.id);
+
+                li.appendChild(info);
+                li.appendChild(botao);
+                lista.appendChild(li);
+            }
+        }
+
+        document.getElementById('formPet').addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            const nome = document.getElementById('nome').value.trim();
+            const tipo = document.getElementById('tipo').value;
+            if (!nome) return;
+
+            const resposta = await fetch('rest/pets/' + tipo, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: nome })
+            });
+
+            if (!resposta.ok) {
+                mensagem.textContent = await erroDe(resposta);
+                return;
+            }
+            document.getElementById('nome').value = '';
+            mensagem.textContent = '';
+            carregarPets();
+        });
+
+        lista.addEventListener('click', async (evento) => {
+            if (evento.target.classList.contains('remover')) {
+                const id = evento.target.getAttribute('data-id');
+                const resposta = await fetch('rest/pets/' + id, { method: 'DELETE' });
+                if (!resposta.ok) {
+                    mensagem.textContent = await erroDe(resposta);
+                }
+                carregarPets();
+            }
+        });
+
+        // ---------- Administracao de usuarios ----------
+        async function carregarEmpresas() {
+            const resposta = await fetch('rest/usuarios/empresas');
+            const nomes = await resposta.json();
+            const box = document.getElementById('empresasBox');
+            box.innerHTML = '';
+
+            for (const nome of nomes) {
+                const label = document.createElement('label');
+                label.className = 'check';
+                const caixa = document.createElement('input');
+                caixa.type = 'checkbox';
+                caixa.value = nome;
+                label.appendChild(caixa);
+                label.appendChild(document.createTextNode(nome));
+                box.appendChild(label);
+            }
+        }
+
+        async function carregarUsuarios() {
+            const resposta = await fetch('rest/usuarios');
+            const usuarios = await resposta.json();
+            const ul = document.getElementById('listaUsuarios');
+            ul.innerHTML = '';
+
+            for (const u of usuarios) {
+                const li = document.createElement('li');
+                li.textContent = u.login + (u.admin ? ' (admin)' : '') + ' - ' + u.empresas.join(', ');
+                ul.appendChild(li);
+            }
+        }
+
+        document.getElementById('formUsuario').addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            const msg = document.getElementById('msgUsuario');
+
+            const empresas = [];
+            for (const caixa of document.querySelectorAll('#empresasBox input:checked')) {
+                empresas.push(caixa.value);
+            }
+
+            const resposta = await fetch('rest/usuarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    login: document.getElementById('novoLogin').value,
+                    senha: document.getElementById('novaSenha').value,
+                    admin: document.getElementById('novoAdmin').checked,
+                    empresas: empresas
+                })
+            });
+
+            if (!resposta.ok) {
+                msg.textContent = await erroDe(resposta);
+                return;
+            }
+            msg.textContent = '';
+            document.getElementById('formUsuario').reset();
+            carregarUsuarios();
+        });
+
+        document.getElementById('sair').addEventListener('click', async () => {
+            await fetch('rest/auth/logout', { method: 'POST' });
+            window.location = 'login.html';
+        });
+
+        iniciar();
+    </script>
+</body>
+</html>
