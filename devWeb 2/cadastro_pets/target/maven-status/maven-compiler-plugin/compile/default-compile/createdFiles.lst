@@ -1,7 +1,0 @@
-br\com\cadastropets\rest\PetResource.class
-br\com\cadastropets\model\Coelho.class
-br\com\cadastropets\rest\JakartaRestConfiguration.class
-br\com\cadastropets\model\Pet.class
-br\com\cadastropets\dto\PetDTO.class
-br\com\cadastropets\model\Gato.class
-br\com\cadastropets\model\Cachorro.class
