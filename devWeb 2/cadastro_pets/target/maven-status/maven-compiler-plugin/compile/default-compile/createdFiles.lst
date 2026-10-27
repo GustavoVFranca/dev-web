@@ -4,4 +4,6 @@ br\com\cadastropets\rest\JakartaRestConfiguration.class
 br\com\cadastropets\model\Pet.class
 br\com\cadastropets\dto\PetDTO.class
 br\com\cadastropets\model\Gato.class
+br\com\cadastropets\model\Usuario.class
+br\com\cadastropets\model\Empresa.class
 br\com\cadastropets\model\Cachorro.class
